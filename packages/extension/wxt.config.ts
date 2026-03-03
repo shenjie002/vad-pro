@@ -14,7 +14,11 @@ export default defineConfig({
         },
         side_panel: {
             default_path: "sidepanel.html"
-        }
+        },
+        web_accessible_resources: [{
+            resources: ["main-world.js"],
+            matches: ["<all_urls>"]
+        }]
     },
     modules: ['react'],
 });

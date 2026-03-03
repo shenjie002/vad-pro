@@ -1,56 +1,13 @@
-// ── 主世界注入脚本（字符串形式，用于检测 React Fiber） ──
-const MAIN_WORLD_SCRIPT = `
-(function() {
-  if (window.__VAD_MAIN_INJECTED) return;
-  window.__VAD_MAIN_INJECTED = true;
-
-  // 根据坐标查找元素的 React Fiber 信息
-  window.__VAD_queryFiber = function(x, y) {
-    var el = document.elementFromPoint(x, y);
-    if (!el) return null;
-
-    var fiberKey = Object.keys(el).find(function(k) {
-      return k.startsWith('__reactFiber$') || k.startsWith('__reactInternalInstance$');
-    });
-    if (!fiberKey) return null;
-
-    var node = el[fiberKey];
-    var componentName = null;
-    var source = null;
-
-    while (node) {
-      if (!componentName && node.type && typeof node.type === 'function') {
-        componentName = node.type.displayName || node.type.name || null;
-      }
-      if (!source && node._debugSource) {
-        source = node._debugSource.fileName + ':' + node._debugSource.lineNumber;
-      }
-      if (componentName && source) break;
-      node = node._debugOwner || node.return;
-    }
-
-    return (componentName || source) ? { componentName: componentName, source: source } : null;
-  };
-
-  // 监听来自 content script 的查询请求
-  window.addEventListener('__vad_query_fiber', function(e) {
-    var detail = e.detail || {};
-    var result = window.__VAD_queryFiber(detail.x, detail.y);
-    window.dispatchEvent(new CustomEvent('__vad_fiber_result', { detail: result }));
-  });
-})();
-`;
-
 export default defineContentScript({
     matches: ['<all_urls>'],
     main() {
         console.log('🎯 VAD-Pro Content Script 已注入');
 
-        // ── 注入主世界脚本 ──
+        // ── 注入主世界脚本（通过外部文件，绕过 CSP） ──
         const script = document.createElement('script');
-        script.textContent = MAIN_WORLD_SCRIPT;
+        script.src = browser.runtime.getURL('/main-world.js');
+        script.onload = () => script.remove();
         (document.head || document.documentElement).appendChild(script);
-        script.remove(); // 注入后删除 script 标签
 
         let isActive = false;
         let highlightBox: HTMLDivElement | null = null;
@@ -248,6 +205,29 @@ export default defineContentScript({
             document.body.appendChild(toast);
             setTimeout(() => toast.remove(), 3000);
 
+
+            // === 新增：把选中信息发送给 Background → Side Panel ===
+            chrome.runtime.sendMessage({
+                type: 'vad-selected',
+                payload: {
+                    taskId: 'task_' + Date.now(),
+                    context: {
+                        target: {
+                            file: info.resolvedSource ? info.resolvedSource.split(':')[0] : null,
+                            line: info.resolvedSource ? parseInt(info.resolvedSource.split(':')[1] || '0') : null,
+                            componentName: info.reactComponent,
+                        },
+                        dom: {
+                            snippet: info.domSnippet,
+                            tag: info.tag,
+                            text: info.text,
+                        },
+                        vision: {
+                            screenshotBase64: null // 后面可补截图
+                        }
+                    }
+                }
+            })
             deactivate();
         };
 
