@@ -1,1 +1,11 @@
 node_modules
+.output
+.wxt
+dist
+*.DS_Store
+.turbo
+.env
+.vscode
+.idea
+*.log
+*pnpm-lock.yaml

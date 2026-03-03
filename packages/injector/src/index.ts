@@ -1,95 +1,83 @@
-// TODO: 后面实现 unplugin + AST + Fiber
-
-
 import { createUnplugin } from 'unplugin'
 import * as babel from '@babel/core'
 import * as t from '@babel/types'
 import traverse from '@babel/traverse'
-import { getFiberSource } from './runtime'
 
-export const visualAgenticInjector = createUnplugin(() => {
-  return {
-    name: 'vad-pro-injector',
-    enforce: 'pre', // 必须在 react()/vue() 等之前执行
+// 纯 default export（unplugin 官方推荐写法，彻底解决 TS 调用问题）
+export default createUnplugin(() => ({
+  name: 'vad-pro-injector',
+  enforce: 'pre', // 必须放在 react() 之前
 
-    transform(code, id) {
-      // 1. 生产环境自动关闭
-      if (process.env.NODE_ENV === 'production') {
-        return null
-      }
+  transform(code, id) {
+    // 生产环境自动关闭
+    // 先去掉路径后面的 ?xxx 参数
+    const cleanId = id.split('?')[0]
+    console.log(`[VAD Injector] 正在处理: ${cleanId}`)
+    // 生产环境自动关闭
+    if (process.env.NODE_ENV === 'production') return null
 
-      // 2. 只处理 JSX/TSX 文件（可扩展 .vue 等）
-      if (!/\.(jsx|tsx)$/.test(id)) {
-        return null
-      }
+    // 用干净的路径做判断
+    if (!/\.(jsx|tsx)$/.test(cleanId)) return null
 
-      try {
-        const ast = babel.parseSync(code, {
-          filename: id,
-          sourceType: 'module',
+    try {
+      const ast = babel.parse(code, {
+        filename: id,
+        sourceType: 'module',
+        parserOpts: {
           plugins: ['jsx', 'typescript'],
-        })
-
-        if (!ast) return null
-
-        traverse(ast, {
-          JSXOpeningElement(path: babel.NodePath<t.JSXOpeningElement>) {
-            const loc = path.node.loc
-            if (!loc) return
-
-            const fileName = id.replace(process.cwd(), '').replace(/\\/g, '/')
-
-            // 注入 data-vdev-source（通用方案）
-            const dataAttr = t.jsxAttribute(
-              t.jsxIdentifier('data-vdev-source'),
-              t.stringLiteral(`${fileName}:${loc.start.line}:${loc.start.column}`)
-            )
-
-            path.node.attributes.push(dataAttr)
-
-            // React 专属：注入 __source（让 React 19 也生成 _debugSource）
-            const sourceAttr = t.jsxAttribute(
-              t.jsxIdentifier('__source'),
-              t.jsxExpressionContainer(
-                t.objectExpression([
-                  t.objectProperty(t.identifier('fileName'), t.stringLiteral(fileName)),
-                  t.objectProperty(t.identifier('lineNumber'), t.numericLiteral(loc.start.line)),
-                  t.objectProperty(t.identifier('columnNumber'), t.numericLiteral(loc.start.column)),
-                ])
-              )
-            )
-            path.node.attributes.push(sourceAttr)
-          },
-        })
-
-        const result = babel.transformFromAstSync(ast, code, {
-          filename: id,
-          plugins: ['@babel/plugin-syntax-jsx'],
-        })
-
-        return {
-          code: result?.code || code,
-          map: result?.map,
         }
-      } catch (err) {
-        console.warn(`[VAD-Injector] 解析失败 ${id}:`, err)
-        return null
-      }
-    },
+      })
 
-    // 额外暴露 runtime（Vite 用户可 import）
-    resolveId(id) {
-      if (id === 'vad-pro/runtime') {
-        return '\0vad-pro/runtime'
-      }
-    },
-    load(id) {
-      if (id === '\0vad-pro/runtime') {
-        return `export * from '${require.resolve('./runtime')}'`
-      }
-    },
-  }
-})
+      if (!ast) return null
 
-// 默认导出（用户直接 import visualAgenticInjector）
-export default visualAgenticInjector
+      traverse(ast, {
+        JSXOpeningElement(path) {
+          const loc = path.node.loc
+          if (!loc) return
+
+          const relativePath = id
+            .replace(process.cwd(), '')
+            .replace(/\\/g, '/')
+
+          // 通用方案：注入 data-vdev-source
+          path.node.attributes.push(
+            t.jsxAttribute(
+              t.jsxIdentifier('data-vdev-source'),
+              t.stringLiteral(`${relativePath}:${loc.start.line}:${loc.start.column}`)
+            )
+          )
+
+          // React 专属：注入 __source（兼容 React 19 _debugSource）
+          // path.node.attributes.push(
+          //   t.jsxAttribute(
+          //     t.jsxIdentifier('__source'),
+          //     t.jsxExpressionContainer(
+          //       t.objectExpression([
+          //         t.objectProperty(t.identifier('fileName'), t.stringLiteral(relativePath)),
+          //         t.objectProperty(t.identifier('lineNumber'), t.numericLiteral(loc.start.line)),
+          //         t.objectProperty(t.identifier('columnNumber'), t.numericLiteral(loc.start.column)),
+          //       ])
+          //     )
+          //   )
+          // )
+        },
+      })
+
+      const result = babel.transformFromAstSync(ast, code, {
+        filename: id,
+        sourceMaps: true,
+        configFile: false, // ✅ 防止被 copilot-toolbox 的 babel.config.js 干扰
+        babelrc: false,    // ✅ 禁用 babelrc
+        // plugins: ['@babel/plugin-syntax-jsx'],
+      })
+
+      return {
+        code: result?.code || code,
+        map: result?.map,
+      }
+    } catch (err) {
+      console.warn(`[VAD-Injector] 解析失败 ${id}:`, err)
+      return null
+    }
+  },
+}))
