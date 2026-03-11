@@ -103,14 +103,22 @@ pnpm dev
 ## react
 ```bash
 pnpm --filter @vad-pro/bridge dev先启动这个桥接打通插件和本地，然后启动插件
-1. vite.config.ts
-import visualAgenticInjector from '../../vad-pro/packages/injector/dist/index.mjs'
+1. 安装包:
+```bash
+npm install @vad-pro/injector -D
+```
+
+2. vite.config.ts 配置:
+```ts
+import vadInjector from '@vad-pro/injector'
+import react from '@vitejs/plugin-react'
 
 plugins: [
-   visualAgenticInjector.vite() as any,
+      vadInjector.vite() as any, // 必须调用 .vite() 
       tailwindcss(),
       react(),
-      ]
+]
+```
 .env
 # 选择一个即可（推荐 Gemini CLI）需要本地启动cli
 # AI_PROVIDER=gemini-cli
@@ -127,12 +135,11 @@ AI_PROVIDER=gemini-api
 ```ts
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
-// 本地未发包写法
-import visualAgenticInjector from '../../vad-pro/packages/injector/dist/index.mjs'
+import vadInjector from '@vad-pro/injector'
 
 export default defineConfig({
   plugins: [
-    visualAgenticInjector.vite() as any, // 必须放在 vue() 之前
+    vadInjector.vite() as any, // 必须放在 vue() 之前，且必须调用 .vite()
     vue()
   ],
 })
