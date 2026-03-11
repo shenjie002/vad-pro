@@ -6,12 +6,19 @@ import { applyPatch } from 'diff';
 import { z } from 'zod';
 import { GoogleGenerativeAI } from '@google/generative-ai'; // Gemini API
 import OpenAI from 'openai';
+import fsSync from 'fs';
 import dotenv from 'dotenv';
 
 console.log('🔧 Bridge 进程启动中...');
 
-// 加载项目根目录的 .env
-dotenv.config({ path: path.join(process.cwd(), '../../.env') });
+// 测试当前执行目录的 .env
+const cwdEnv = path.join(process.cwd(), '.env');
+const rootEnv = path.join(process.cwd(), '../../.env');
+if (fsSync.existsSync(cwdEnv)) {
+    dotenv.config({ path: cwdEnv });
+} else {
+    dotenv.config({ path: rootEnv });
+}
 
 const PORT = 8787;
 const AI_PROVIDER = process.env.AI_PROVIDER || 'gemini-cli';

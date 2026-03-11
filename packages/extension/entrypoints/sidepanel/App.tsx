@@ -44,8 +44,12 @@ const App = () => {
         setPrompt('');
     };
 
-    const openOptions = () => {
-        chrome.runtime.openOptionsPage();
+    const openOptions = async () => {
+        try {
+            await chrome.runtime.openOptionsPage();
+        } catch (error) {
+            chrome.tabs.create({ url: chrome.runtime.getURL('/options.html') });
+        }
     };
 
     return (

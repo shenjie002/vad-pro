@@ -1,6 +1,6 @@
 {
   "name": "@vad-pro/injector",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
@@ -10,19 +10,22 @@
   "peerDependencies": {
     "vite": "^5.0.0 || ^6.0.0"
   },
-  "devDependencies": {
+  "dependencies": {
     "@babel/core": "^7.24.0",
-    "@babel/generator": "^7.24.0",
     "@babel/parser": "^7.24.0",
-    "@babel/plugin-syntax-jsx": "^7.24.0",
-    "@babel/preset-typescript": "^7.24.1",
     "@babel/traverse": "^7.24.0",
     "@babel/types": "^7.24.0",
+    "@vad-pro/bridge": "workspace:^0.1.0",
+    "@vue/compiler-sfc": "^3.5.29",
+    "unplugin": "^1.0.0"
+  },
+  "devDependencies": {
+    "@babel/generator": "^7.24.0",
+    "@babel/plugin-syntax-jsx": "^7.24.0",
+    "@babel/preset-typescript": "^7.24.1",
     "@types/babel__core": "^7.20.5",
     "@types/babel__traverse": "^7.20.5",
-    "@vue/compiler-sfc": "^3.5.29",
     "tsup": "^8.0.0",
-    "typescript": "^5.5.0",
-    "unplugin": "^1.0.0"
+    "typescript": "^5.5.0"
   }
 }

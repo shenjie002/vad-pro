@@ -3,12 +3,45 @@ import * as babel from '@babel/core'
 import * as t from '@babel/types'
 import traverse__default from '@babel/traverse'
 import { parse as parseVue, compileTemplate } from '@vue/compiler-sfc'
+import { spawn } from 'child_process'
 
 const traverse = (traverse__default as any).default || traverse__default
+
+let bridgeProcess: any = null
 
 export default createUnplugin(() => ({
   name: 'vad-pro-injector',
   enforce: 'pre', // 必须放在 react() 之前
+
+  vite: {
+    configureServer(server) {
+      if (bridgeProcess) return
+
+      try {
+        const bridgeEntry = require.resolve('@vad-pro/bridge')
+        console.log('[VAD-Injector] 启动后台 Bridge 服务...')
+        
+        bridgeProcess = spawn('node', [bridgeEntry], {
+          stdio: 'inherit',
+          env: process.env,
+          // detached: false (default), so child dies when parent dies (often)
+        })
+
+        bridgeProcess.on('error', (err: any) => {
+          console.error('[VAD-Injector] 启动 Bridge 失败:', err.message)
+        })
+
+        server.httpServer?.on('close', () => {
+          if (bridgeProcess) {
+             bridgeProcess.kill()
+             bridgeProcess = null
+          }
+        })
+      } catch (e: any) {
+         console.warn('[VAD-Injector] 无法找到 @vad-pro/bridge，请确保已安装依赖:', e.message)
+      }
+    }
+  },
 
   transform(code, id) {
     const cleanId = id.split('?')[0]
