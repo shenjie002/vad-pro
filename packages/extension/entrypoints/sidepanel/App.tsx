@@ -21,29 +21,43 @@ const App = () => {
         return () => chrome.runtime.onMessage.removeListener(listener);
     }, []);
 
-    const sendToBridge = () => {
+    const sendToBridge = async () => {
         if (!prompt.trim()) return;
         if (!currentContext) {
             alert('请先在页面上 Cmd+Shift+S 选中一个元素');
             return;
         }
 
+        // 读取用户配置的 AI
+        const data = await chrome.storage.local.get('vadAiConfig');
+        const aiConfig = data.vadAiConfig || { provider: 'gemini-cli' };
+
         const fullPayload = {
             ...currentContext,
             userPrompt: prompt,
-            action: 'visual_agent_edit'
+            action: 'visual_agent_edit',
+            aiConfig
         };
-
+        console.log("fullPayload", fullPayload);
         chrome.runtime.sendMessage({ type: 'vad-send-prompt', payload: fullPayload });
-        setLogs(prev => [...prev, `👤 用户: ${prompt}`]);
+        setLogs(prev => [...prev, `👤 用户: ${prompt} (${aiConfig.provider})`]);
         setPrompt('');
+    };
+
+    const openOptions = () => {
+        chrome.runtime.openOptionsPage();
     };
 
     return (
         <div style={styles.container}>
             {/* Header */}
             <div style={styles.header}>
-                <h1 style={styles.title}>✨ VAD-Pro</h1>
+                <div style={styles.titleWrapper}>
+                    <h1 style={styles.title}>✨ VAD-Pro</h1>
+                    <button onClick={openOptions} style={styles.settingsBtn} title="配置 AI 驱动源">
+                        ⚙️
+                    </button>
+                </div>
                 {currentContext && <div style={styles.badge}>已选中元素 ✓</div>}
             </div>
 
@@ -88,8 +102,15 @@ const styles: Record<string, React.CSSProperties> = {
     header: {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16,
     },
+    titleWrapper: {
+        display: 'flex', alignItems: 'center', gap: 10,
+    },
     title: {
-        fontSize: 18, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8, margin: 0,
+        fontSize: 18, fontWeight: 700, margin: 0,
+    },
+    settingsBtn: {
+        background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 16, padding: '4px',
+        opacity: 0.7, transition: 'opacity 0.2s', borderRadius: '4px', display: 'flex'
     },
     badge: {
         fontSize: 11, color: '#34d399', background: '#022c22', padding: '4px 10px', borderRadius: 20,

@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",
-    "bridge:dev": "pnpm --filter bridge dev",
+    "bridge:dev": "pnpm --filter bridge start",
     "extension:dev": "pnpm --filter extension dev"
   },
   "devDependencies": {

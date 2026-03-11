@@ -3,19 +3,28 @@
   "version": "0.1.0",
   "main": "./dist/index.js",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
+    "dev": "tsx src/index.ts",
+    "start": "tsx src/index.ts",
     "build": "tsc"
   },
   "dependencies": {
-    "koa": "^2.15.0",
+    "@anthropic-ai/sdk": "^0.33.0",
+    "@google/generative-ai": "^0.21.0",
     "@koa/router": "^12.0.0",
-    "ws": "^8.16.0",
-    "node-pty": "^1.0.0",
-    "zod": "^3.23.0"
+    "diff": "^5.2.0",
+    "dotenv": "^16.4.5",
+    "koa": "^2.15.0",
+    "node-pty": "^1.1.0-beta.1",
+    "openai": "^4.71.1",
+    "ws": "^8.18.0",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
-    "tsx": "^4.7.0",
-    "typescript": "^5.5.0",
-    "@types/node": "^20.0.0"
+    "@types/diff": "^5.2.3",
+    "@types/dotenv": "^8.2.3",
+    "@types/node": "^20.0.0",
+    "@types/ws": "^8.5.13",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
   }
 }
